@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"go.xitonix.io/gophobotics/input"
+	"github.com/xitonix/gophobotics/input"
 	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/platforms/dji/tello"
 )

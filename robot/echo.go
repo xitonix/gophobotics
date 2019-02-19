@@ -3,7 +3,7 @@ package robot
 import (
 	"fmt"
 
-	"go.xitonix.io/gophobotics/input"
+	"github.com/xitonix/gophobotics/input"
 )
 
 // Echo is a robot that simply prints every input command to standard output

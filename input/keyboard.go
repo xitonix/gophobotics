@@ -31,10 +31,14 @@ func (t *Keyboard) Start() error {
 		return err
 	}
 	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputAlt)
+	termbox.SetInputMode(termbox.InputAlt | termbox.InputMouse)
 	for {
 		ev := termbox.PollEvent()
 		switch ev.Key {
+		case termbox.MouseLeft:
+			t.started = false
+			close(t.commands)
+			return nil
 		case termbox.KeyCtrlC:
 			t.started = false
 			close(t.commands)
@@ -62,7 +66,7 @@ func (t *Keyboard) Start() error {
 		case termbox.KeyF5:
 			t.commands <- Bounce
 
-		case termbox.KeyHome:
+		case termbox.KeySpace:
 			if !t.started {
 				t.started = true
 				t.commands <- Start
