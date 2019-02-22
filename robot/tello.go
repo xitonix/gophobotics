@@ -38,6 +38,7 @@ func (t *Tello) Video(output io.WriteCloser) error {
 	if nil == output {
 		return nil
 	}
+
 	t.drone.On(tello.ConnectedEvent, func(data interface{}) {
 		t.drone.SetVideoEncoderRate(tello.VideoBitRateAuto)
 		t.drone.StartVideo()
@@ -82,7 +83,7 @@ func (t *Tello) Connect(source input.Source) error {
 		close(t.errors)
 		return
 	}()
-
+	t.drone.On(tello.FlightDataEvent, t.flightData)
 	robot := gobot.NewRobot("tello",
 		[]gobot.Connection{},
 		[]gobot.Device{t.drone})
@@ -93,6 +94,14 @@ func (t *Tello) Connect(source input.Source) error {
 	}
 	wg.Wait()
 	return nil
+}
+
+func (t *Tello) flightData(s interface{}) {
+	if fd, ok := s.(*tello.FlightData); ok {
+		if fd.BatteryLow {
+			fmt.Printf("Battery is low, current battery level is :%d , flight time left: %d \n", fd.BatteryPercentage, fd.DroneFlyTimeLeft)
+		}
+	}
 }
 
 func (t *Tello) executeCommand(command input.Command) error {
