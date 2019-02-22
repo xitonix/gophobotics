@@ -3,8 +3,10 @@ package input
 type Command int8
 
 const (
-	Start Command = iota
-	Stop
+	None Command = iota
+	TakeOff
+	Land
+	PalmLand
 
 	Up
 	Down
@@ -12,21 +14,24 @@ const (
 	Backward
 	Left
 	Right
+	RotateRight
+	RotateLeft
 
 	FrontFlip
 	BackFlip
 	LeftFlip
 	RightFlip
 	Bounce
-
 )
 
 func (c Command) String() string {
 	switch c {
-	case Start:
-		return "Start"
-	case Stop:
-		return "Stop"
+	case TakeOff:
+		return "Takeoff"
+	case Land:
+		return "Land"
+	case PalmLand:
+		return "PalmLand"
 	case Up:
 		return "Up"
 	case Down:
@@ -35,6 +40,10 @@ func (c Command) String() string {
 		return "Left"
 	case Right:
 		return "Right"
+	case RotateLeft:
+		return "RotateLeft"
+	case RotateRight:
+		return "RotateRight"
 	case Forward:
 		return "Forward"
 	case Backward:

@@ -45,7 +45,7 @@ func (t *Tello) Connect(source input.Source) error {
 			t.drone.Hover()
 		}
 
-		err := t.executeCommand(input.Stop)
+		err := t.executeCommand(input.Land)
 		if err != nil {
 			t.errors <- err
 		}
@@ -67,15 +67,21 @@ func (t *Tello) Connect(source input.Source) error {
 
 func (t *Tello) executeCommand(command input.Command) error {
 	switch command {
-	case input.Start:
+	case input.TakeOff:
 		return t.drone.TakeOff()
-	case input.Stop:
+	case input.Land:
 		return t.drone.Land()
+	case input.PalmLand:
+		return t.drone.PalmLand()
 
 	case input.Left:
 		return t.drone.Left(t.move)
 	case input.Right:
 		return t.drone.Right(t.move)
+	case input.RotateRight:
+		return t.drone.Clockwise(t.move)
+	case input.RotateLeft:
+		return t.drone.CounterClockwise(t.move)
 	case input.Forward:
 		return t.drone.Forward(t.move)
 	case input.Backward:
