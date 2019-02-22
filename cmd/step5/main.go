@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"os/exec"
 	"sync"
 
 	"github.com/spf13/pflag"
@@ -14,36 +14,32 @@ func main() {
 	verbose := pflag.BoolP("verbose", "v", false, "Enables verbose mode")
 	pflag.Parse()
 	source := input.NewKeyboard(*verbose)
-	robo := robot.NewTello(50)
-	mplayer := exec.Command("mplayer", "-fps", "60", "-")
 
-	mplayerIn, err := mplayer.StdinPipe()
-	if nil != err {
-		panic(err)
-	}
+	robot := robot.NewTello(50, true)
 
-	if err := mplayer.Start(); err != nil {
-		panic(err)
-	}
-	if err := robo.Video(mplayerIn); nil != err {
-		panic(err)
-	}
 	var wg sync.WaitGroup
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := robo.Connect(source)
-		if err != nil {
-			log.Fatal(err)
+		for err := range robot.Errors() {
+			fmt.Printf("Err: %s\n", err)
 		}
 	}()
+
+	wg.Add(1)
 	go func() {
-		err = source.Start()
+		defer wg.Done()
+		err := robot.Connect(source)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
-	if err := mplayer.Wait(); nil != err {
-		log.Printf("mplayer error:%s\n", err)
+
+	err := source.Start()
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	wg.Wait()
 }

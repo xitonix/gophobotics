@@ -3,6 +3,7 @@ package robot
 import (
 	"fmt"
 	"io"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -12,17 +13,19 @@ import (
 )
 
 type Tello struct {
-	drone  *tello.Driver
-	move   int
-	errors chan error
+	drone       *tello.Driver
+	move        int
+	errors      chan error
+	enableVideo bool
 }
 
 // NewTello creates a new Tello drone robot
-func NewTello(move int) *Tello {
+func NewTello(move int, enableVideo bool) *Tello {
 	return &Tello{
-		drone:  tello.NewDriver("8888"),
-		move:   move,
-		errors: make(chan error),
+		drone:       tello.NewDriver("8888"),
+		move:        move,
+		errors:      make(chan error),
+		enableVideo: enableVideo,
 	}
 }
 
@@ -32,37 +35,21 @@ func (t *Tello) Errors() <-chan error {
 	return t.errors
 }
 
-// Video setup video feeds
-// it need to be called before you connect to other source
-func (t *Tello) Video(output io.WriteCloser) error {
-	if nil == output {
-		return nil
-	}
-	t.drone.On(tello.ConnectedEvent, func(data interface{}) {
-		t.drone.SetVideoEncoderRate(tello.VideoBitRateAuto)
-		t.drone.StartVideo()
-		// it need to send `StartVideo` to the drone every 100ms
-		gobot.Every(100*time.Millisecond, func() {
-			if err := t.drone.StartVideo(); nil != err {
-				fmt.Printf("fail to start video on drone:%s\n", err)
-			}
-		})
-	})
-
-	t.drone.On(tello.VideoFrameEvent, func(data interface{}) {
-		pkt := data.([]byte)
-		if len(pkt) > 0 {
-			if _, err := output.Write(pkt); err != nil {
-				fmt.Printf("err:%s\n", err)
-			}
-		}
-	})
-	return nil
-}
-
 // Connect establishes a new connection to the drone and blocks until the source's Commands channel is closed.
 func (t *Tello) Connect(source input.Source) error {
 	wg := sync.WaitGroup{}
+	if t.enableVideo {
+		mplayer, err := t.startVideo()
+		if err != nil {
+			return err
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = mplayer.Wait()
+		}()
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -73,6 +60,9 @@ func (t *Tello) Connect(source input.Source) error {
 			}
 			time.Sleep(150 * time.Millisecond)
 			t.drone.Hover()
+			if cmd.IsRotation() {
+				t.drone.CeaseRotation()
+			}
 		}
 
 		err := t.executeCommand(input.Land)
@@ -92,6 +82,7 @@ func (t *Tello) Connect(source input.Source) error {
 		return err
 	}
 	wg.Wait()
+
 	return nil
 }
 
@@ -132,5 +123,61 @@ func (t *Tello) executeCommand(command input.Command) error {
 	case input.Bounce:
 		return t.drone.Bounce()
 	}
+	return nil
+}
+
+func (t *Tello) startVideo() (*exec.Cmd, error) {
+	mplayer := exec.Command("mplayer", "-fps", "60", "-")
+	videoBuffer, err := mplayer.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := t.initialiseVideo(videoBuffer); err != nil {
+		return nil, err
+	}
+
+	if err := mplayer.Start(); err != nil {
+		return nil, err
+	}
+
+	return mplayer, nil
+}
+
+func (t *Tello) initialiseVideo(output io.WriteCloser) error {
+	err := t.drone.On(tello.ConnectedEvent, func(data interface{}) {
+		err := t.drone.SetVideoEncoderRate(tello.VideoBitRateAuto)
+		if err != nil {
+			t.errors <- fmt.Errorf("failed to set video encoder rate: %s", err)
+		}
+		err = t.drone.StartVideo()
+		if err != nil {
+			t.errors <- fmt.Errorf("failed start the video rate: %s", err)
+		}
+		// it needs to send `StartVideo` to the drone every 100ms
+		gobot.Every(100*time.Millisecond, func() {
+			if err := t.drone.StartVideo(); nil != err {
+				fmt.Printf("failed to start video on drone:%s\n", err)
+			}
+		})
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to video connection events: %s", err)
+	}
+
+	err = t.drone.On(tello.VideoFrameEvent, func(data interface{}) {
+		pkt := data.([]byte)
+		if len(pkt) > 0 {
+			if _, err := output.Write(pkt); err != nil {
+				fmt.Printf("err:%s\n", err)
+			}
+		}
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to video frame events: %s", err)
+	}
+
 	return nil
 }

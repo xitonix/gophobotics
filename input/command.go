@@ -62,3 +62,7 @@ func (c Command) String() string {
 		return "Unknown"
 	}
 }
+
+func (c Command) IsRotation() bool {
+	return c == RotateLeft || c == RotateRight
+}

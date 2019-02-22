@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -13,13 +14,23 @@ func main() {
 	verbose := pflag.BoolP("verbose", "v", false, "Enables verbose mode")
 	pflag.Parse()
 	source := input.NewKeyboard(*verbose)
-	robo := robot.NewTello(50)
+
+	tello := robot.NewTello(50, false)
 
 	var wg sync.WaitGroup
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := robo.Connect(source)
+		for err := range tello.Errors() {
+			fmt.Printf("Err: %s\n", err)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := tello.Connect(source)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -29,4 +40,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	wg.Wait()
 }
