@@ -18,7 +18,6 @@ const (
 	LeftFlip
 	RightFlip
 	Bounce
-
 )
 
 func (c Command) String() string {

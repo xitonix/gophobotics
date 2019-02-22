@@ -1,6 +1,8 @@
 package robot
 
 import (
+	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -28,6 +30,34 @@ func NewTello(move int) *Tello {
 // MAKE SURE you always read from this channel before calling the Connect method to avoid deadlock
 func (t *Tello) Errors() <-chan error {
 	return t.errors
+}
+
+// Video setup video feeds
+// it need to be called before you connect to other source
+func (t *Tello) Video(output io.WriteCloser) error {
+	if nil == output {
+		return nil
+	}
+	t.drone.On(tello.ConnectedEvent, func(data interface{}) {
+		t.drone.SetVideoEncoderRate(tello.VideoBitRateAuto)
+		t.drone.StartVideo()
+		// it need to send `StartVideo` to the drone every 100ms
+		gobot.Every(100*time.Millisecond, func() {
+			if err := t.drone.StartVideo(); nil != err {
+				fmt.Printf("fail to start video on drone:%s\n", err)
+			}
+		})
+	})
+
+	t.drone.On(tello.VideoFrameEvent, func(data interface{}) {
+		pkt := data.([]byte)
+		if len(pkt) > 0 {
+			if _, err := output.Write(pkt); err != nil {
+				fmt.Printf("err:%s\n", err)
+			}
+		}
+	})
+	return nil
 }
 
 // Connect establishes a new connection to the drone and blocks until the source's Commands channel is closed.
@@ -84,7 +114,6 @@ func (t *Tello) executeCommand(command input.Command) error {
 		return t.drone.Up(t.move)
 	case input.Down:
 		return t.drone.Down(t.move)
-
 	case input.FrontFlip:
 		return t.drone.FrontFlip()
 	case input.BackFlip:
