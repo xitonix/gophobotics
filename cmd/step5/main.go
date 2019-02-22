@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"sync"
 
-	"git.campmon.com/golang/corekit/proc"
 	"github.com/spf13/pflag"
 	"github.com/xitonix/gophobotics/input"
 	"github.com/xitonix/gophobotics/robot"
@@ -47,5 +46,4 @@ func main() {
 	if err := mplayer.Wait(); nil != err {
 		log.Printf("mplayer error:%s\n", err)
 	}
-	proc.WaitForTermination()
 }
