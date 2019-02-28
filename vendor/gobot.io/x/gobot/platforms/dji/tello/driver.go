@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
 
 	"gobot.io/x/gobot"
 )
@@ -261,6 +262,9 @@ func (d *Driver) Start() error {
 		for {
 			err := d.handleResponse(cmdConn)
 			if err != nil {
+				if strings.Contains(err.Error(), "use of closed network connection") {
+					return
+				}
 				fmt.Println("response parse error:", err)
 			}
 		}
@@ -816,6 +820,9 @@ func (d *Driver) processVideo() error {
 		for {
 			buf := make([]byte, 2048)
 			n, _, err := d.videoConn.ReadFromUDP(buf)
+			if n <= 0 {
+				return
+			}
 			d.Publish(d.Event(VideoFrameEvent), buf[2:n])
 
 			if err != nil {

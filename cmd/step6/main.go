@@ -13,7 +13,7 @@ import (
 func main() {
 	verbose := pflag.BoolP("verbose", "v", false, "Enables verbose mode")
 	pflag.Parse()
-	source := input.NewKeyboard(*verbose)
+	source := input.NewKMakeyMakey(*verbose)
 
 	tello := robot.NewTello(50)
 

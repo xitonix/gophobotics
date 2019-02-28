@@ -43,6 +43,7 @@ func (t *Keyboard) Start() error {
 	}
 	defer termbox.Close()
 	termbox.SetInputMode(termbox.InputAlt)
+	printHelp(true)
 	for {
 		ev := termbox.PollEvent()
 		if cmd := parseCharacter(ev.Ch); cmd != None {
@@ -67,6 +68,33 @@ func parseCharacter(ch rune) Command {
 		return cmd
 	}
 	return None
+}
+
+func printHelp(keyboard bool) {
+	fmt.Printf("\nCONTROLS\n------------------------------\n")
+	var mouse string
+	if !keyboard {
+		mouse = "/Left Click"
+	}
+	fmt.Printf("    CTRL + C%s: Emergency landing and EXIT\n\n", mouse)
+
+	fmt.Printf("       SPACE: Takeoff/Land\n")
+	fmt.Printf("    ARROW UP: Forward\n")
+	fmt.Printf("  ARROW DOWN: Backward\n")
+	fmt.Printf("  ARROW LEFT: Move left\n")
+	fmt.Printf(" ARROW RIGHT: Move right\n")
+	if keyboard {
+		fmt.Printf("           L: Rotate Left\n")
+		fmt.Printf("           R: Rotate Right\n")
+		fmt.Printf("           U: UP\n")
+		fmt.Printf("           D: Down\n")
+		fmt.Printf("          F1: Front Flip (BE CAREFUL)\n")
+		fmt.Printf("          F2: Back Flip (BE CAREFUL)\n")
+		fmt.Printf("          F3: Right Flip (BE CAREFUL)\n")
+		fmt.Printf("          F4: Left Flip (BE CAREFUL)\n")
+		fmt.Printf("          F5: Bounce | Stop Bouncing (BE CAREFUL)\n")
+
+	}
 }
 
 func (t *Keyboard) parseKey(key termbox.Key) bool {
