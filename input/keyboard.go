@@ -41,7 +41,7 @@ func (t *Keyboard) Start() error {
 	if err != nil {
 		return err
 	}
-	defer termbox.Close()
+	// defer termbox.Close()
 	termbox.SetInputMode(termbox.InputAlt)
 	printHelp(true)
 	for {

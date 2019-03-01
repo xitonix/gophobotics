@@ -29,7 +29,7 @@ func (t *MakeyMakey) Start() error {
 	if err != nil {
 		return err
 	}
-	defer termbox.Close()
+	// defer termbox.Close()
 	termbox.SetInputMode(termbox.InputAlt | termbox.InputMouse)
 	printHelp(false)
 	for {

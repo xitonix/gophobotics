@@ -793,7 +793,8 @@ func (d *Driver) handleResponse(r io.Reader) error {
 		case videoEncoderRateCommand:
 			d.Publish(d.Event(SetVideoEncoderRateEvent), buf[7:8])
 		default:
-			fmt.Printf("Unknown message: %+v\n", buf[0:n])
+			_ = n
+			// fmt.Printf("Unknown message: %+v\n", buf[0:n])
 		}
 		return nil
 	}

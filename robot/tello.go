@@ -77,6 +77,10 @@ func (t *Tello) MonitorTermination() {
 func (t *Tello) Connect(source input.Source) error {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+	robot := gobot.NewRobot("tello",
+		[]gobot.Connection{},
+		[]gobot.Device{t.drone})
+
 	go func() {
 		defer wg.Done()
 		for cmd := range source.Commands() {
@@ -91,7 +95,7 @@ func (t *Tello) Connect(source input.Source) error {
 		t.closed = true
 		close(t.done)
 
-		err := t.executeCommand(input.Land)
+		err := t.drone.Halt()
 		if err != nil {
 			t.errors <- err
 		}
@@ -99,14 +103,10 @@ func (t *Tello) Connect(source input.Source) error {
 		return
 	}()
 
-	robot := gobot.NewRobot("tello",
-		[]gobot.Connection{},
-		[]gobot.Device{t.drone})
+	go func() {
+		_ = robot.Start()
+	}()
 
-	err := robot.Start()
-	if err != nil {
-		return err
-	}
 	wg.Wait()
 	return nil
 }
