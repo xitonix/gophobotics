@@ -22,6 +22,8 @@ const (
 	LeftFlip
 	RightFlip
 	Bounce
+
+	Exit
 )
 
 func (c Command) String() string {
@@ -58,6 +60,8 @@ func (c Command) String() string {
 		return "RightFlip"
 	case Bounce:
 		return "Bounce"
+	case Exit:
+		return "Exit"
 	default:
 		return "Unknown"
 	}
@@ -65,4 +69,8 @@ func (c Command) String() string {
 
 func (c Command) IsRotation() bool {
 	return c == RotateLeft || c == RotateRight
+}
+
+func (c Command) IsLandOrTakeoff() bool {
+	return c == TakeOff || c == Land
 }

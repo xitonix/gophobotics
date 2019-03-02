@@ -10,10 +10,14 @@ import (
 )
 
 func main() {
-	verbose := pflag.BoolP("verbose", "v", false, "Enables verbose mode")
+	v := pflag.CountP("verbose", "v", "Enables verbose mode. You can enable extra verbosity by using -vv")
+	maxMoves := pflag.IntP("max-moves", "m", 6, "Maximum number of allowed forward/backward/left/right moves")
 	pflag.Parse()
-	source := input.NewKeyboard(*verbose)
-	robo := robot.NewTello(50)
+
+	verbosity := input.ParseVerbosity(*v)
+	source := input.NewKeyboard(verbosity)
+	robo := robot.NewTello(30, *maxMoves, verbosity)
+
 	mplayer := exec.Command("mplayer", "-fps", "60", "-")
 
 	mplayerIn, err := mplayer.StdinPipe()

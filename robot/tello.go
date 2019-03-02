@@ -12,20 +12,31 @@ import (
 )
 
 type Tello struct {
-	drone  *tello.Driver
-	move   int
-	errors chan error
-	done   chan interface{}
-	closed bool
+	drone                  *tello.Driver
+	move, maxNumberOfMoves int
+	errors                 chan error
+	done                   chan interface{}
+	closed                 bool
+	moves                  struct {
+		forward int
+		back    int
+		left    int
+		right   int
+		up      int
+		down    int
+	}
+	verbosity input.Verbosity
 }
 
 // NewTello creates a new Tello drone robot
-func NewTello(move int) *Tello {
+func NewTello(move, maxNumberOfMoves int, verbosity input.Verbosity) *Tello {
 	return &Tello{
-		drone:  tello.NewDriver("8888"),
-		move:   move,
-		errors: make(chan error),
-		done:   make(chan interface{}),
+		drone:            tello.NewDriver("8888"),
+		move:             move,
+		maxNumberOfMoves: maxNumberOfMoves,
+		errors:           make(chan error),
+		done:             make(chan interface{}),
+		verbosity:        verbosity,
 	}
 }
 
@@ -84,12 +95,30 @@ func (t *Tello) Connect(source input.Source) error {
 	go func() {
 		defer wg.Done()
 		for cmd := range source.Commands() {
-			err := t.executeCommand(cmd)
+			if cmd == input.Exit {
+				t.printCommand(input.Exit)
+				break
+			}
+			err, ignored := t.executeCommand(cmd)
 			if err != nil {
 				t.errors <- err
+				continue
 			}
-			time.Sleep(150 * time.Millisecond)
-			t.drone.Hover()
+
+			if !ignored {
+				t.printCommand(cmd)
+			}
+
+			if cmd.IsLandOrTakeoff() || ignored {
+				continue
+			}
+
+			time.Sleep(500 * time.Millisecond)
+			if cmd.IsRotation() {
+				t.drone.CeaseRotation()
+			} else {
+				t.drone.Hover()
+			}
 		}
 
 		t.closed = true
@@ -111,43 +140,133 @@ func (t *Tello) Connect(source input.Source) error {
 	return nil
 }
 
-func (t *Tello) executeCommand(command input.Command) error {
+func (t *Tello) printCommand(command input.Command) {
+	if t.verbosity >= input.Verbose {
+		fmt.Printf("Drone: %s Command Received\n", command)
+	}
+}
+
+func (t *Tello) executeCommand(command input.Command) (error, bool) {
 	switch command {
 	case input.TakeOff:
-		return t.drone.TakeOff()
+		return t.drone.TakeOff(), false
 	case input.Land:
-		return t.drone.Land()
+		return t.drone.Land(), false
 	case input.PalmLand:
-		return t.drone.PalmLand()
+		return t.drone.PalmLand(), false
 
 	case input.Left:
-		return t.drone.Left(t.move)
+		if t.isOverLimit(command) {
+			return nil, true
+		}
+		return t.drone.Left(t.move), false
 	case input.Right:
-		return t.drone.Right(t.move)
-	case input.RotateRight:
-		return t.drone.Clockwise(t.move)
-	case input.RotateLeft:
-		return t.drone.CounterClockwise(t.move)
+		if t.isOverLimit(command) {
+			return nil, true
+		}
+		return t.drone.Right(t.move), false
 	case input.Forward:
-		return t.drone.Forward(t.move)
+		if t.isOverLimit(command) {
+			return nil, true
+		}
+		return t.drone.Forward(t.move), false
 	case input.Backward:
-		return t.drone.Backward(t.move)
+		if t.isOverLimit(command) {
+			return nil, true
+		}
+		return t.drone.Backward(t.move), false
+	case input.RotateRight:
+		return t.drone.Clockwise(t.move), false
+	case input.RotateLeft:
+		return t.drone.CounterClockwise(t.move), false
+
 	case input.Up:
-		return t.drone.Up(t.move)
+		if t.isOverLimit(command) {
+			return nil, true
+		}
+		return t.drone.Up(t.move), false
 	case input.Down:
-		return t.drone.Down(t.move)
+		if t.isOverLimit(command) {
+			return nil, true
+		}
+		return t.drone.Down(t.move), false
 
 	case input.FrontFlip:
-		return t.drone.FrontFlip()
+		return t.drone.FrontFlip(), false
 	case input.BackFlip:
-		return t.drone.BackFlip()
+		return t.drone.BackFlip(), false
 	case input.LeftFlip:
-		return t.drone.LeftFlip()
+		return t.drone.LeftFlip(), false
 	case input.RightFlip:
-		return t.drone.RightFlip()
+		return t.drone.RightFlip(), false
 
 	case input.Bounce:
-		return t.drone.Bounce()
+		return t.drone.Bounce(), false
+	default:
+		return nil, true
 	}
-	return nil
+}
+
+func (t *Tello) isOverLimit(cmd input.Command) bool {
+	if t.maxNumberOfMoves <= 0 {
+		return false
+	}
+	var current int
+	switch cmd {
+	case input.Left:
+		if t.moves.left < t.maxNumberOfMoves {
+			t.moves.left++
+		}
+		if t.moves.right > 0 {
+			t.moves.right--
+		}
+		current = t.moves.left
+
+	case input.Right:
+		if t.moves.right < t.maxNumberOfMoves {
+			t.moves.right++
+		}
+		if t.moves.left > 0 {
+			t.moves.left--
+		}
+		current = t.moves.right
+	case input.Forward:
+		if t.moves.forward < t.maxNumberOfMoves {
+			t.moves.forward++
+		}
+		if t.moves.back > 0 {
+			t.moves.back--
+		}
+		current = t.moves.forward
+	case input.Backward:
+		if t.moves.back < t.maxNumberOfMoves {
+			t.moves.back++
+		}
+		if t.moves.forward > 0 {
+			t.moves.forward--
+		}
+		current = t.moves.back
+	case input.Up:
+		if t.moves.up < t.maxNumberOfMoves {
+			t.moves.up++
+		}
+		if t.moves.down > 0 {
+			t.moves.down--
+		}
+		current = t.moves.up
+	case input.Down:
+		if t.moves.down < t.maxNumberOfMoves {
+			t.moves.down++
+		}
+		if t.moves.up > 0 {
+			t.moves.up--
+		}
+		current = t.moves.down
+	default:
+		return false
+	}
+	if t.verbosity >= input.VeryVerbose {
+		fmt.Printf("Current Moves: %+v\n", t.moves)
+	}
+	return current >= t.maxNumberOfMoves
 }

@@ -11,11 +11,13 @@ import (
 )
 
 func main() {
-	verbose := pflag.BoolP("verbose", "v", false, "Enables verbose mode")
+	v := pflag.CountP("verbose", "v", "Enables verbose mode. You can enable extra verbosity by using -vv")
+	maxMoves := pflag.IntP("max-moves", "m", 6, "Maximum number of allowed forward/backward/left/right moves")
 	pflag.Parse()
-	source := input.NewKMakeyMakey(*verbose)
+	verbosity := input.ParseVerbosity(*v)
+	source := input.NewKeyboard(verbosity)
 
-	tello := robot.NewTello(50)
+	tello := robot.NewTello(20, *maxMoves, verbosity)
 
 	var wg sync.WaitGroup
 

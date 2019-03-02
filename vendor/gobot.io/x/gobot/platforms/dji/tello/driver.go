@@ -57,6 +57,8 @@ const (
 
 	// SetVideoEncoderRateEvent event
 	SetVideoEncoderRateEvent = "setvideoencoder"
+
+	errClosedConnection = "use of closed network connection"
 )
 
 // the 16-bit messages and commands stored in bytes 6 & 5 of the packet
@@ -262,7 +264,7 @@ func (d *Driver) Start() error {
 		for {
 			err := d.handleResponse(cmdConn)
 			if err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") {
+				if strings.Contains(err.Error(), errClosedConnection) {
 					return
 				}
 				fmt.Println("response parse error:", err)
@@ -278,6 +280,9 @@ func (d *Driver) Start() error {
 		for {
 			err := d.SendStickCommand()
 			if err != nil {
+				if strings.Contains(err.Error(), errClosedConnection) {
+					return
+				}
 				fmt.Println("stick command error:", err)
 			}
 			time.Sleep(20 * time.Millisecond)

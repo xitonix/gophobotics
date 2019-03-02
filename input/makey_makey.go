@@ -2,21 +2,22 @@ package input
 
 import (
 	"fmt"
+
 	"github.com/nsf/termbox-go"
 )
 
 // MakeyMakey implements the Source interface and provides keypress commands from a MakeyMakey board
 type MakeyMakey struct {
-	commands chan Command
-	started  bool
-	verbose  bool
+	commands  chan Command
+	started   bool
+	verbosity Verbosity
 }
 
 // NewMakeyMakey creates a new MakeyMakey source
-func NewKMakeyMakey(verbose bool) *MakeyMakey {
+func NewKMakeyMakey(verbosity Verbosity) *MakeyMakey {
 	return &MakeyMakey{
-		commands: make(chan Command),
-		verbose:  verbose,
+		commands:  make(chan Command),
+		verbosity: verbosity,
 	}
 }
 
@@ -29,47 +30,50 @@ func (t *MakeyMakey) Start() error {
 	if err != nil {
 		return err
 	}
-	// defer termbox.Close()
 	termbox.SetInputMode(termbox.InputAlt | termbox.InputMouse)
 	printHelp(false)
 	for {
 		ev := termbox.PollEvent()
-		exit := t.parseKey(ev.Key)
-		if t.verbose {
+		cmd := t.parseKey(ev.Key)
+		if t.verbosity == VeryVerbose {
 			fmt.Printf("KEY: %v, CH: %v, MODIFIER: %v, EVENT: %v\n", ev.Key, ev.Ch, ev.Mod, ev.Type)
 		}
+		t.commands <- cmd
 
-		if exit {
+		if cmd == Exit {
+			t.started = false
+			close(t.commands)
 			return nil
 		}
 	}
 }
 
-func (t *MakeyMakey) parseKey(key termbox.Key) bool {
+func (t *MakeyMakey) parseKey(key termbox.Key) Command {
+	cmd := None
 	switch key {
-
 	case termbox.MouseLeft, termbox.KeyCtrlC:
-		t.started = false
-		close(t.commands)
-		return true
-
+		cmd = Exit
 	case termbox.KeyArrowUp:
-		t.commands <- Forward
+		cmd = Forward
 	case termbox.KeyArrowDown:
-		t.commands <- Backward
+		cmd = Backward
 	case termbox.KeyArrowLeft:
-		t.commands <- Left
+		cmd = Left
 	case termbox.KeyArrowRight:
-		t.commands <- Right
+		cmd = Right
 
 	case termbox.KeySpace:
 		if !t.started {
 			t.started = true
-			t.commands <- TakeOff
+			cmd = TakeOff
 		} else {
 			t.started = false
-			t.commands <- Land
+			cmd = Land
 		}
 	}
-	return false
+	if t.verbosity >= Verbose {
+		fmt.Printf("Command Triggered: %s\n", cmd)
+	}
+
+	return cmd
 }

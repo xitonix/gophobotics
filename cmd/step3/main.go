@@ -10,10 +10,10 @@ import (
 )
 
 func main() {
-	verbose := pflag.BoolP("verbose", "v", false, "Enables verbose mode")
-
+	v := pflag.CountP("verbose", "v", "Enables verbose mode. You can enable extra verbosity by using -vv")
 	pflag.Parse()
-	source := input.NewKeyboard(*verbose)
+
+	source := input.NewKeyboard(input.ParseVerbosity(*v))
 	robo := robot.NewEcho()
 
 	var wg sync.WaitGroup
