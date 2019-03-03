@@ -90,7 +90,7 @@ func (t *Tello) MonitorTermination() {
 
 // Connect establishes a new connection to the drone and blocks until the source's Commands channel is closed.
 func (t *Tello) Connect(source input.Source) error {
-	wg := sync.WaitGroup{}
+	_ = t.drone.On(tello.FlightDataEvent, t.flightData)
 
 	robot := gobot.NewRobot("tello",
 		[]gobot.Connection{},
@@ -98,6 +98,7 @@ func (t *Tello) Connect(source input.Source) error {
 
 	go t.filter(source.Commands())
 
+	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -154,6 +155,15 @@ func (t *Tello) Connect(source input.Source) error {
 func (t *Tello) printCommand(command input.Command) {
 	if t.verbosity >= input.Verbose {
 		fmt.Printf("Drone: %s Command Received\n", command)
+	}
+}
+
+func (t *Tello) flightData(s interface{}) {
+	if fd, ok := s.(*tello.FlightData); ok {
+		if fd.BatteryLow {
+			fmt.Printf("Battery is low %d%%\n", fd.BatteryPercentage)
+			time.Sleep(5 * time.Second)
+		}
 	}
 }
 
