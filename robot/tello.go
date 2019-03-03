@@ -211,17 +211,6 @@ func (t *Tello) executeCommand(command input.Command) (error, bool) {
 		}
 		return t.drone.Down(t.move), false
 
-	case input.FrontFlip:
-		return t.drone.FrontFlip(), false
-	case input.BackFlip:
-		return t.drone.BackFlip(), false
-	case input.LeftFlip:
-		return t.drone.LeftFlip(), false
-	case input.RightFlip:
-		return t.drone.RightFlip(), false
-
-	case input.Bounce:
-		return t.drone.Bounce(), false
 	default:
 		return nil, true
 	}

@@ -121,16 +121,6 @@ func (t *Keyboard) parseKey(key termbox.Key) Command {
 		cmd = Left
 	case termbox.KeyArrowRight:
 		cmd = Right
-	case termbox.KeyF1:
-		cmd = FrontFlip
-	case termbox.KeyF2:
-		cmd = BackFlip
-	case termbox.KeyF3:
-		cmd = RightFlip
-	case termbox.KeyF4:
-		cmd = LeftFlip
-	case termbox.KeyF5:
-		cmd = Bounce
 
 	case termbox.KeySpace:
 		if !t.started {
