@@ -16,6 +16,7 @@ type Tello struct {
 	move, maxNumberOfMoves int
 	errors                 chan error
 	done                   chan interface{}
+	terminated             chan interface{}
 	closed                 bool
 	moves                  struct {
 		forward int
@@ -25,7 +26,8 @@ type Tello struct {
 		up      int
 		down    int
 	}
-	verbosity input.Verbosity
+	verbosity        input.Verbosity
+	internalCommands chan input.Command
 }
 
 // NewTello creates a new Tello drone robot
@@ -36,7 +38,9 @@ func NewTello(move, maxNumberOfMoves int, verbosity input.Verbosity) *Tello {
 		maxNumberOfMoves: maxNumberOfMoves,
 		errors:           make(chan error),
 		done:             make(chan interface{}),
+		terminated:       make(chan interface{}),
 		verbosity:        verbosity,
+		internalCommands: make(chan input.Command, 1000),
 	}
 }
 
@@ -87,42 +91,49 @@ func (t *Tello) MonitorTermination() {
 // Connect establishes a new connection to the drone and blocks until the source's Commands channel is closed.
 func (t *Tello) Connect(source input.Source) error {
 	wg := sync.WaitGroup{}
-	wg.Add(1)
+
 	robot := gobot.NewRobot("tello",
 		[]gobot.Connection{},
 		[]gobot.Device{t.drone})
 
+	go t.filter(source.Commands())
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for cmd := range source.Commands() {
-			if cmd == input.Exit {
+		for !t.closed {
+			select {
+			case <-t.terminated:
 				t.printCommand(input.Exit)
-				break
-			}
-			err, ignored := t.executeCommand(cmd)
-			if err != nil {
-				t.errors <- err
-				continue
-			}
+				t.closed = true
+				close(t.internalCommands)
+				close(t.done)
+			case cmd, more := <-t.internalCommands:
+				if !more {
+					t.closed = true
+				}
+				err, ignored := t.executeCommand(cmd)
+				if err != nil {
+					t.errors <- err
+					continue
+				}
 
-			if !ignored {
-				t.printCommand(cmd)
-			}
+				if !ignored {
+					t.printCommand(cmd)
+				}
 
-			if cmd.IsLandOrTakeoff() || ignored {
-				continue
-			}
+				if cmd.IsLandOrTakeoff() || ignored {
+					continue
+				}
 
-			time.Sleep(500 * time.Millisecond)
-			if cmd.IsRotation() {
-				t.drone.CeaseRotation()
-			} else {
-				t.drone.Hover()
+				time.Sleep(500 * time.Millisecond)
+				if cmd.IsRotation() {
+					t.drone.CeaseRotation()
+				} else {
+					t.drone.Hover()
+				}
 			}
 		}
-
-		t.closed = true
-		close(t.done)
 
 		err := t.drone.Halt()
 		if err != nil {
@@ -152,8 +163,6 @@ func (t *Tello) executeCommand(command input.Command) (error, bool) {
 		return t.drone.TakeOff(), false
 	case input.Land:
 		return t.drone.Land(), false
-	case input.PalmLand:
-		return t.drone.PalmLand(), false
 
 	case input.Left:
 		if t.isOverLimit(command) {
@@ -269,4 +278,14 @@ func (t *Tello) isOverLimit(cmd input.Command) bool {
 		fmt.Printf("Current Moves: %+v\n", t.moves)
 	}
 	return current >= t.maxNumberOfMoves
+}
+
+func (t *Tello) filter(commands <-chan input.Command) {
+	for cmd := range commands {
+		if cmd == input.Exit {
+			close(t.terminated)
+			return
+		}
+		t.internalCommands <- cmd
+	}
 }

@@ -299,8 +299,12 @@ func (d *Driver) Halt() (err error) {
 	time.Sleep(500 * time.Millisecond)
 
 	// TODO: cleanly shutdown the goroutines that are handling the UDP connections before closing
-	d.cmdConn.Close()
-	d.videoConn.Close()
+	if d.cmdConn != nil {
+		d.cmdConn.Close()
+	}
+	if d.videoConn != nil {
+		d.videoConn.Close()
+	}
 	return
 }
 

@@ -50,6 +50,9 @@ func (t *Keyboard) Start() error {
 		}
 
 		cmd := t.parseKey(ev.Key)
+		if cmd == None {
+			continue
+		}
 		t.commands <- cmd
 		if t.verbosity == VeryVerbose {
 			fmt.Printf("KEY: %v, CH: %v, MODIFIER: %v, EVENT: %v\n", ev.Key, ev.Ch, ev.Mod, ev.Type)
@@ -58,6 +61,7 @@ func (t *Keyboard) Start() error {
 		if cmd == Exit {
 			t.started = false
 			close(t.commands)
+			_ = termbox.Clear(0, 0)
 			return nil
 		}
 	}
@@ -128,20 +132,17 @@ func (t *Keyboard) parseKey(key termbox.Key) Command {
 	case termbox.KeyF5:
 		cmd = Bounce
 
-	case termbox.KeySpace, termbox.KeyCtrlSpace:
+	case termbox.KeySpace:
 		if !t.started {
 			t.started = true
 			cmd = TakeOff
 		} else {
 			t.started = false
-			if key == termbox.KeySpace {
-				cmd = Land
-			} else {
-				cmd = PalmLand
-			}
+			cmd = Land
 		}
 	}
-	if t.verbosity >= Verbose {
+
+	if t.verbosity >= Verbose && cmd != None {
 		fmt.Printf("Command Triggered: %s\n", cmd)
 	}
 	return cmd

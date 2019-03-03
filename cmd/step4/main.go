@@ -12,12 +12,12 @@ import (
 
 func main() {
 	v := pflag.CountP("verbose", "v", "Enables verbose mode. You can enable extra verbosity by using -vv")
-	maxMoves := pflag.IntP("max-moves", "m", 6, "Maximum number of allowed forward/backward/left/right moves")
+	maxMoves := pflag.IntP("max-moves", "m", 6, "Maximum number of allowed movements")
 	pflag.Parse()
 	verbosity := input.ParseVerbosity(*v)
 	source := input.NewKeyboard(verbosity)
 
-	tello := robot.NewTello(20, *maxMoves, verbosity)
+	tello := robot.NewTello(40, *maxMoves, verbosity)
 
 	var wg sync.WaitGroup
 

@@ -6,7 +6,6 @@ const (
 	None Command = iota
 	TakeOff
 	Land
-	PalmLand
 
 	Up
 	Down
@@ -32,8 +31,6 @@ func (c Command) String() string {
 		return "Takeoff"
 	case Land:
 		return "Land"
-	case PalmLand:
-		return "PalmLand"
 	case Up:
 		return "Up"
 	case Down:
