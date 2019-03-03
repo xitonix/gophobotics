@@ -105,6 +105,7 @@ func (t *Tello) Connect(source input.Source) error {
 		for !t.closed {
 			select {
 			case <-t.terminated:
+				t.drone.Hover()
 				t.printCommand(input.Exit)
 				t.closed = true
 				close(t.internalCommands)
