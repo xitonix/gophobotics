@@ -47,6 +47,9 @@ func (c Command) String() string {
 		return "Forward"
 	case Backward:
 		return "Backward"
+
+	// Advanced Moves
+
 	case FrontFlip:
 		return "FrontFlip"
 	case BackFlip:
@@ -57,6 +60,9 @@ func (c Command) String() string {
 		return "RightFlip"
 	case Bounce:
 		return "Bounce"
+
+	// End of Advanced Moves
+
 	case Exit:
 		return "Exit"
 	default:

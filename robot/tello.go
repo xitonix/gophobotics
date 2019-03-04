@@ -200,6 +200,8 @@ func (t *Tello) executeCommand(command input.Command) (error, bool) {
 	case input.RotateLeft:
 		return t.drone.CounterClockwise(t.move), false
 
+	// Here goes the advanced moves handling cases
+
 	case input.Up:
 		if t.isOverLimit(command) {
 			return nil, true

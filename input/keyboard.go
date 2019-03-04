@@ -122,6 +122,8 @@ func (t *Keyboard) parseKey(key termbox.Key) Command {
 	case termbox.KeyArrowRight:
 		cmd = Right
 
+	// Here goes the advanced move mappings
+
 	case termbox.KeySpace:
 		if !t.started {
 			t.started = true
