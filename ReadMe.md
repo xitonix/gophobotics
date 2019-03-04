@@ -35,6 +35,10 @@ echo $GOPATH (echo %GOPATH% on Windows)
 
 
 
+# Install an Editor
+
+Feel free to use any code editor you feel more comfortable with. We would suggest [Visual Studio Code](https://code.visualstudio.com/download) with the [Go extention](https://github.com/Microsoft/vscode-go) installed for this workshop. To install the extension, search VS Code's marketplace for `go` and install the extention build by Microsoft.
+
 ## Prerequisites
 
 In order to be able to play around with one of the steps in the workshop, you would need to install `mplayer` on your machine.
