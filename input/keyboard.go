@@ -44,6 +44,11 @@ func (t *Keyboard) Start() error {
 	printHelp(true)
 	for {
 		ev := termbox.PollEvent()
+
+		if t.verbosity == VeryVerbose {
+			fmt.Printf("KEY: %v, CH: %v, MODIFIER: %v, EVENT: %v\n", ev.Key, ev.Ch, ev.Mod, ev.Type)
+		}
+
 		if cmd := parseCharacter(ev.Ch); cmd != None {
 			t.commands <- cmd
 			continue
@@ -54,9 +59,6 @@ func (t *Keyboard) Start() error {
 			continue
 		}
 		t.commands <- cmd
-		if t.verbosity == VeryVerbose {
-			fmt.Printf("KEY: %v, CH: %v, MODIFIER: %v, EVENT: %v\n", ev.Key, ev.Ch, ev.Mod, ev.Type)
-		}
 
 		if cmd == Exit {
 			t.started = false
